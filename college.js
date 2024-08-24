@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 
 const express = require('express');
@@ -7,7 +6,7 @@ const cors = require('cors');
 const nodemailer = require('nodemailer');
 
 const app = express();
-const port = process.env.PORT || 5000; // Use the port from .env file
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
@@ -31,20 +30,20 @@ const contactSchema = new mongoose.Schema({
   email: { type: String, required: true },
   phone: { type: String },
   message: { type: String },
-  otp: { type: String, required: true }, // store OTP
-  otpExpires: { type: Date, required: true }, // store OTP expiration time
-  isVerified: { type: Boolean, default: false }, // to track OTP verification
+  otp: { type: String, required: true },
+  otpExpires: { type: Date, required: true },
+  isVerified: { type: Boolean, default: false },
 });
 
 const Contact = mongoose.model('Contact', contactSchema);
 
 // Nodemailer transporter setup
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // use your email service provider
+  service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER, // Use the email from .env file
-    pass: process.env.EMAIL_PASS, // Use the password from .env file
-  }
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
 // Route to handle OTP generation
@@ -54,13 +53,13 @@ app.post('/contact', async (req, res) => {
 
     // Generate a random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Save contact details along with OTP and expiration time (without message)
+    // Save or update contact details
     let contact = await Contact.findOneAndUpdate(
       { email },
       { otp, otpExpires, isVerified: false },
-      { new: true, upsert: true } // create new if not exists
+      { new: true, upsert: true }
     );
 
     // Send OTP to the user's email
@@ -68,7 +67,7 @@ app.post('/contact', async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'Your OTP Code',
-      text: `Your OTP code is ${otp}. It is valid for 10 minutes.`
+      text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -90,16 +89,13 @@ app.post('/verify-otp', async (req, res) => {
   try {
     const { email, otp, name, phone, message } = req.body;
 
-    // Find the contact using email
     const contact = await Contact.findOne({ email });
 
     if (!contact) {
       return res.status(404).json({ error: 'Contact not found' });
     }
 
-    // Check if the OTP is valid and not expired
     if (contact.otp === otp && contact.otpExpires > new Date()) {
-      // OTP verified, update contact with message and verification status
       contact.name = name;
       contact.phone = phone;
       contact.message = message;
