@@ -113,5 +113,5 @@ app.post('/verify-otp', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`Server running on port developed by vinod ${port}`);
 });
